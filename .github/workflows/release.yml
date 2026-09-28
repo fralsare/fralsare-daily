@@ -50,7 +50,7 @@ jobs:
           releaseBody: |
             Quick start:
             - **Windows:** the `_x64-setup.exe` installer, or the
-              `_x64.zip` (portable, no install)
+              `_x64_portable.zip` (portable: unzip and run, no install)
             - **Linux:** the `_amd64.AppImage` (most distros), or the
               `.deb` / `.rpm` packages
 
@@ -58,3 +58,22 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Build portable zip (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $out = "fralsare-daily_${version}_x64_portable.zip"
+          Compress-Archive `
+            -Path src-tauri/target/release/fralsare-daily.exe, `
+              src-tauri/target/release/WebView2Loader.dll `
+            -DestinationPath $out
+
+      - name: Upload portable zip (Windows)
+        if: runner.os == 'Windows'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: fralsare-daily_*_x64_portable.zip

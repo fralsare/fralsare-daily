@@ -20,7 +20,6 @@
     "targets": [
     "nsis",
     "msi",
-    "zip",
     "appimage",
     "deb",
     "rpm"
