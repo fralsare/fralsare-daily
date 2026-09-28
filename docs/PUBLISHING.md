@@ -129,8 +129,35 @@ Keep the version in sync before tagging:
 
   (The README already references `docs/screenshot.png`.)
 
-- **Topics**: on the repo page, under the About panel, add topics such as
-  `news-reader`, `rss`, `tauri`, `rust`, `typescript`, `desktop-app`.
+- **Topics** (recommended set for this repo): on the repo page, under the
+  About panel, paste these (comma-separated, up to 25 allowed):
+
+  ```
+  news, news-reader, rss, rss-reader, news-aggregator, tauri, rust,
+  typescript, desktop-app, cross-platform, linux, windows, privacy, minimal
+  ```
+
+  Why these:
+  - `news`, `news-reader`, `rss`, `rss-reader`, `news-aggregator` — the
+    core what-it-is; these are the terms people actually search.
+  - `tauri`, `rust`, `typescript` — stack topics; `tauri` in particular
+    has an active community that discovers apps this way.
+  - `desktop-app`, `cross-platform`, `linux`, `windows` — platform
+    discoverability (GitHub filters by these).
+  - `privacy`, `minimal` — the product's selling points (no accounts,
+    no API keys, no tracking).
+
+  Avoid: `open-source` (redundant for a public repo), `web`, `webapp`
+  (misleading — this is a native window), `electron` (it's not Electron;
+  at most `electron-alternative` if you want to attract that audience).
+
+- **Promo images** (already in the repo, regenerate with
+  `python3 scripts/gen-banner.py`):
+  - `docs/banner.png` (1600×500, dark) — wide web banner; good for a
+    GitHub topic page, personal site, or link-posts on forums/HN.
+  - `docs/og.png` (1200×630, light) — the standard Open Graph size; use
+    it when sharing the repo on social media, and it is the size GitHub
+    uses for link previews.
 
 - **Pinning**: the repo can be pinned on your GitHub profile
   (profile → Customization → Pin repos).
