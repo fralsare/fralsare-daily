@@ -1,0 +1,18 @@
+import { defineConfig } from "vite";
+
+// Tauri expects a fixed dev port.
+export default defineConfig({
+  clearScreen: false,
+  server: {
+    port: 1420,
+    strictPort: true,
+    hmr: {
+      port: 1421,
+    },
+  },
+  envPrefix: ["VITE_", "TAURI_ENV_"],
+  build: {
+    target: "es2021",
+    outDir: "dist",
+  },
+});

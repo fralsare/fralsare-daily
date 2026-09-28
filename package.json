@@ -1,0 +1,24 @@
+{
+  "name": "fralsare-daily",
+  "productName": "fralsare-daily",
+  "version": "0.1.0",
+  "description": "A minimal cross-platform desktop news reader organized by topics. Open source, no API keys, no accounts.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.5.0",
+    "@tauri-apps/plugin-opener": "^2.2.6"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.5.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
+  }
+}
