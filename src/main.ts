@@ -1,4 +1,5 @@
-import { fetchTopic, openLink } from "./api";
+import { fetchArticle, fetchTopic, openLink } from "./api";
+import type { ArticleContent } from "./api";
 import {
   TOPICS,
   type Article,
@@ -22,6 +23,11 @@ interface State {
   error: string | null;
   timer: ReturnType<typeof setTimeout> | null;
   ticking: ReturnType<typeof setInterval> | null;
+  /** Articles opened in-app, most recent last. Empty = feed view. */
+  articleStack: Article[];
+  articleContent: ArticleContent | null;
+  articleLoading: boolean;
+  articleError: string | null;
 }
 
 const state: State = {
@@ -33,6 +39,10 @@ const state: State = {
   error: null,
   timer: null,
   ticking: null,
+  articleStack: [],
+  articleContent: null,
+  articleLoading: false,
+  articleError: null,
 };
 
 if (!TOPICS.some((t) => t.id === state.topicId)) {
@@ -78,7 +88,9 @@ function render(): void {
   app.classList.toggle("text-mode", state.mode === "text");
 
   const layout = el("div", "layout");
-  layout.append(renderSidebar(), renderMain());
+  const main =
+    state.articleStack.length > 0 ? renderArticleView() : renderMain();
+  layout.append(renderSidebar(), main);
   app.append(layout);
 }
 
@@ -206,6 +218,159 @@ function renderMain(): HTMLElement {
   return main;
 }
 
+/* ------------------------------------------------------------ article */
+
+const BLOCKED_TAGS = new Set([
+  "SCRIPT",
+  "STYLE",
+  "NOSCRIPT",
+  "IFRAME",
+  "FRAME",
+  "OBJECT",
+  "EMBED",
+  "FORM",
+  "SVG",
+  "CANVAS",
+  "TEMPLATE",
+  "DIALOG",
+]);
+
+/**
+ * Second line of defense for article HTML (Rust already sanitizes).
+ * Parses the HTML into a detached document, strips executable elements,
+ * inline event handlers, and javascript: URLs, and returns the cleaned
+ * body — appended as a live DOM node, never re-serialized.
+ */
+function sanitizeDocument(html: string): HTMLElement {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const walk = (root: Element): void => {
+    for (const child of Array.from(root.children)) {
+      if (BLOCKED_TAGS.has(child.tagName)) {
+        child.remove();
+        continue;
+      }
+      for (const attr of Array.from(child.attributes)) {
+        const name = attr.name.toLowerCase();
+        if (name.startsWith("on")) child.removeAttribute(attr.name);
+        if (
+          (name === "href" || name === "src") &&
+          /^\s*javascript:/i.test(attr.value)
+        ) {
+          child.removeAttribute(attr.name);
+        }
+      }
+      walk(child);
+    }
+  };
+  walk(doc.documentElement);
+  return doc.body;
+}
+
+function openArticle(article: Article): void {
+  state.articleStack.push(article);
+  state.articleContent = null;
+  state.articleError = null;
+  state.articleLoading = true;
+  render();
+  void loadArticle(article);
+}
+
+async function loadArticle(article: Article): Promise<void> {
+  const isStillCurrent = () => {
+    const top = state.articleStack[state.articleStack.length - 1];
+    return top !== undefined && top.link === article.link;
+  };
+  try {
+    const content = await fetchArticle(article.link);
+    if (!isStillCurrent()) return;
+    state.articleContent = content;
+    if (content.title) {
+      state.articleStack[state.articleStack.length - 1].title = content.title;
+    }
+  } catch (e) {
+    if (!isStillCurrent()) return;
+    state.articleError = String(e);
+  } finally {
+    if (isStillCurrent()) {
+      state.articleLoading = false;
+      render();
+    }
+  }
+}
+
+function backFromArticle(): void {
+  state.articleStack.pop();
+  state.articleContent = null;
+  state.articleLoading = false;
+  state.articleError = null;
+  render();
+}
+
+function renderArticleView(): HTMLElement {
+  const article = state.articleStack[state.articleStack.length - 1];
+  const main = el("section", "main");
+
+  const header = el("header", "article-header");
+  const back = el("button", "back-btn");
+  back.textContent = "← Back";
+  back.addEventListener("click", backFromArticle);
+  const heading = el("h1", "article-heading", article.title);
+  const meta = el("div", "article-meta");
+  meta.textContent = `${article.source} · ${relativeTime(article.pub_date)}`;
+  const browser = el("button", "browser-btn");
+  browser.textContent = "Open in browser";
+  browser.addEventListener("click", () =>
+    openLink(article.link).catch(() => undefined),
+  );
+  header.append(back, heading, meta, browser);
+  main.append(header);
+
+  const content = el("div", "article-content");
+  if (state.articleLoading) {
+    content.append(el("div", "state-box", "Loading article…"));
+  } else if (state.articleError) {
+    content.append(
+      el(
+        "div",
+        "state-box error",
+        `Couldn't load this story in-app. Use “Open in browser” above to read it.`,
+      ),
+    );
+  } else if (state.articleContent) {
+    const reader = el("article", "reader");
+    // Transfers the sanitized nodes into the live document; no re-serialization.
+    reader.append(sanitizeDocument(state.articleContent.html));
+    // Links inside the article stay in-app.
+    reader.addEventListener("click", (ev) => {
+      const anchor = (ev.target as HTMLElement).closest("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+      ev.preventDefault();
+      let abs: URL;
+      try {
+        abs = new URL(href, location.href);
+      } catch {
+        return;
+      }
+      if (abs.protocol !== "http:" && abs.protocol !== "https:") return;
+      if (abs.href === article.link) return;
+      openArticle({
+        id: abs.href,
+        title: anchor.textContent?.trim() || "Story",
+        link: abs.href,
+        source: article.source,
+        image: null,
+        summary: null,
+        pub_date: null,
+      });
+    });
+    content.append(reader);
+  }
+  main.append(content);
+  return main;
+}
+
 function renderCard(a: Article): HTMLElement {
   const card = el("article", "card");
   if (a.image) {
@@ -229,7 +394,7 @@ function renderCard(a: Article): HTMLElement {
   );
   body.append(foot);
   card.append(body);
-  card.addEventListener("click", () => openLink(a.link).catch(() => undefined));
+  card.addEventListener("click", () => openArticle(a));
   return card;
 }
 
@@ -245,7 +410,7 @@ function renderRow(a: Article): HTMLElement {
   );
   mainCol.append(foot);
   row.append(mainCol);
-  row.addEventListener("click", () => openLink(a.link).catch(() => undefined));
+  row.addEventListener("click", () => openArticle(a));
   return row;
 }
 

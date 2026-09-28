@@ -1,5 +1,6 @@
 mod feeds;
 mod rss;
+mod sanitize;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -17,12 +18,25 @@ const CACHE_TTL: Duration = Duration::from_secs(300);
 const MAX_ARTICLES: usize = 60;
 /// Per-feed request timeout.
 const FEED_TIMEOUT: Duration = Duration::from_secs(15);
+/// Article page fetch timeout.
+const ARTICLE_TIMEOUT: Duration = Duration::from_secs(20);
+/// Cap on article bytes we are willing to parse.
+const MAX_ARTICLE_BYTES: usize = 4_000_000;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct FeedError {
     pub feed: String,
     pub error: String,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub struct ArticleContent {
+    pub url: String,
+    pub title: String,
+    pub html: String,
+    pub content_type: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -123,6 +137,103 @@ async fn fetch_topic(state: State<'_, AppState>, topic: String) -> Result<TopicR
     Ok(result)
 }
 
+fn validate_public_url(raw: &str) -> Result<String, String> {
+    let url = reqwest::Url::parse(raw)
+        .map_err(|e| format!("invalid URL: {e}"))?;
+    let scheme = url.scheme();
+    if scheme != "http" && scheme != "https" {
+        return Err(format!("unsupported URL scheme: {scheme}"));
+    }
+    Ok(url.to_string())
+}
+
+#[tauri::command]
+async fn fetch_article(
+    state: State<'_, AppState>,
+    url: String,
+) -> Result<ArticleContent, String> {
+    let url = validate_public_url(&url)?;
+
+    let resp = state
+        .client
+        .get(&url)
+        .timeout(ARTICLE_TIMEOUT)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 fralsare-daily/0.1",
+        )
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        )
+        .send()
+        .await
+        .map_err(|e| format!("fetch failed: {e}"))?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    if !status.is_success() {
+        return Err(format!("fetch failed: HTTP {status}"));
+    }
+
+    let bytes = resp.bytes().await.map_err(|e| format!("fetch failed: {e}"))?;
+    let text = String::from_utf8_lossy(&bytes[..bytes.len().min(MAX_ARTICLE_BYTES)]);
+    let ctype = content_type.to_ascii_lowercase();
+
+    if ctype.contains("html") || ctype.is_empty() {
+        let title = sanitize::extract_title(&text);
+        let sanitized = sanitize::sanitize_html(&text);
+        // Keep the rendered article reasonably sized for the webview.
+        let cut = sanitized.floor_char_boundary(1_500_000.min(sanitized.len()));
+        Ok(ArticleContent {
+            url: url.to_string(),
+            title,
+            html: sanitized[..cut].to_string(),
+            content_type,
+        })
+    } else if ctype.contains("xml") {
+        // Some article URLs point at feeds; render the latest entry.
+        let articles = parse_feed(&text, &url.to_string());
+        match articles.first() {
+            Some(first) => {
+                let body = format!(
+                    "<p class=\"reader-note\">This source publishes as a feed; showing its latest entry.</p><h2>{}</h2>{}",
+                    sanitize::escape_html(&first.title),
+                    first
+                        .summary
+                        .as_deref()
+                        .map(|s| format!("<p>{}</p>", sanitize::escape_html(s)))
+                        .unwrap_or_default()
+                );
+                Ok(ArticleContent {
+                    url: url.to_string(),
+                    title: first.title.clone(),
+                    html: body,
+                    content_type,
+                })
+            }
+            None => Err(format!("feed at {url} contained no entries")),
+        }
+    } else if ctype.starts_with("text/") {
+        Ok(ArticleContent {
+            url: url.to_string(),
+            title: sanitize::extract_title(&text),
+            html: format!("<pre>{}</pre>", sanitize::escape_html(&text)),
+            content_type,
+        })
+    } else {
+        Err(format!(
+            "unsupported content type: {content_type} — use “Open in browser” instead"
+        ))
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -133,7 +244,7 @@ pub fn run() {
                 .expect("failed to build HTTP client"),
             cache: Mutex::new(HashMap::new()),
         })
-        .invoke_handler(tauri::generate_handler![fetch_topic])
+        .invoke_handler(tauri::generate_handler![fetch_topic, fetch_article])
         .setup(|app| {
             let _window = app
                 .get_webview_window("main")

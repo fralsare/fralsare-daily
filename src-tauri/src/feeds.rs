@@ -10,23 +10,6 @@ pub struct FeedSpec {
 
 pub const TOPICS: &[(&str, &[FeedSpec])] = &[
     (
-        "ai",
-        &[
-            FeedSpec {
-                name: "MIT Tech Review — AI",
-                url: "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-            },
-            FeedSpec {
-                name: "TechCrunch — AI",
-                url: "https://techcrunch.com/category/artificial-intelligence/feed/",
-            },
-            FeedSpec {
-                name: "Ars Technica — AI",
-                url: "https://arstechnica.com/ai/feed/",
-            },
-        ],
-    ),
-    (
         "geopolitics",
         &[
             FeedSpec {

@@ -22,6 +22,7 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 quick-xml = "0.37"
 chrono = { version = "0.4", features = ["serde", "clock"] }
 futures = "0.3"
+regex = "1"
 
 [profile.release]
 strip = true

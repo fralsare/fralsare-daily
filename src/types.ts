@@ -29,7 +29,6 @@ export interface TopicDef {
 }
 
 export const TOPICS: TopicDef[] = [
-  { id: "ai", label: "AI", icon: "🤖" },
   { id: "geopolitics", label: "Geopolitics & Conflict", icon: "🌍" },
   { id: "politics", label: "Politics & Governance", icon: "🏛️" },
   { id: "sports", label: "Sports", icon: "⚽" },
