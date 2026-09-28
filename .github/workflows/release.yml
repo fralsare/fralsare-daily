@@ -55,6 +55,9 @@ jobs:
               `.deb` / `.rpm` packages
 
             Built automatically by CI from the release tag. MIT-licensed.
+
+            🙏 If fralsare-daily is useful to you, consider supporting the
+            work: https://github.com/sponsors/fralsare
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

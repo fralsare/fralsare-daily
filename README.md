@@ -103,6 +103,23 @@ fallback.
 Edit `src-tauri/src/feeds.rs` — each topic maps to a list of
 `(name, url)` feed pairs. RSS 2.0 and Atom are both supported.
 
+## 🙏 Support This Project
+
+Developing, maintaining, and improving this app takes time. If you find
+it useful, consider supporting the work — the funds go toward
+**cybersecurity studies**.
+
+Choose the payment method that's most convenient for you:
+
+[![Sponsor](https://img.shields.io/badge/sponsor%20-30363d?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/fralsare)
+
+If you're in India, you can also pay directly via **Google Pay / any UPI
+app** by scanning the QR code below — no account sign-up required.
+
+![UPI Payment](./DonationUPI.jpeg)
+
+Thanks to all my backers for making this possible!
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
