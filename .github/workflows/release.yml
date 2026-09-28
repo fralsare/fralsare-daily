@@ -64,10 +64,12 @@ jobs:
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v', ''
           $out = "fralsare-daily_${version}_x64_portable.zip"
-          Compress-Archive `
-            -Path src-tauri/target/release/fralsare-daily.exe, `
-              src-tauri/target/release/WebView2Loader.dll `
-            -DestinationPath $out
+          $dir = "src-tauri/target/release"
+          $items = @(Get-Item (Join-Path $dir "fralsare-daily.exe"))
+          $dlls = Get-ChildItem (Join-Path $dir "*.dll") `
+            -ErrorAction SilentlyContinue
+          if ($dlls) { $items += $dlls }
+          Compress-Archive -Path $items -DestinationPath $out
 
       - name: Upload portable zip (Windows)
         if: runner.os == 'Windows'
