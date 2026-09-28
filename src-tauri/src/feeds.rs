@@ -81,12 +81,12 @@ pub const TOPICS: &[(&str, &[FeedSpec])] = &[
         "viral",
         &[
             FeedSpec {
-                name: "Reddit — r/popular",
-                url: "https://www.reddit.com/r/popular/.rss",
+                name: "BBC — Top stories",
+                url: "https://feeds.bbci.co.uk/news/rss.xml",
             },
             FeedSpec {
-                name: "Reddit — r/worldnews",
-                url: "https://www.reddit.com/r/worldnews/.rss",
+                name: "The Guardian — Top stories",
+                url: "https://www.theguardian.com/news/rss",
             },
             FeedSpec {
                 name: "Hacker News — Front page",

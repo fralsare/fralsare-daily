@@ -215,7 +215,9 @@ async fn fetch_article(
 
     if ctype.contains("html") || ctype.is_empty() {
         let title = sanitize::extract_title(&text);
-        let sanitized = sanitize::sanitize_html(&text);
+        // Keep only the article body (drop site chrome, related stories,
+        // footers) before sanitizing.
+        let sanitized = sanitize::sanitize_html(&sanitize::extract_main_content(&text));
         // Keep the rendered article reasonably sized for the webview.
         let cut = sanitized.floor_char_boundary(1_500_000.min(sanitized.len()));
         Ok(ArticleContent {

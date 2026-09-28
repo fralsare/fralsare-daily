@@ -25,6 +25,12 @@ const BLOCK_TAGS: &[&str] = &[
     // `<base>` hijacks relative URLs; `<meta http-equiv>` can redirect.
     "base",
     "meta",
+    // Site chrome: headers, nav menus, footers, and sidebars are noise in
+    // the reader (menus, related-stories lists, legal text).
+    "nav",
+    "header",
+    "footer",
+    "aside",
 ];
 
 fn block_re(tag: &str) -> &'static Regex {
@@ -83,6 +89,53 @@ pub fn sanitize_html(html: &str) -> String {
     out = style_attr_re().replace_all(&out, "").into_owned();
     out = js_url_re().replace_all(&out, "").into_owned();
     out
+}
+
+fn tag_blocks_re(tag: &str) -> &'static Regex {
+    static RE: OnceLock<Vec<Regex>> = OnceLock::new();
+    const TAGS: &[&str] = &["article", "main"];
+    let all = RE.get_or_init(|| {
+        TAGS
+            .iter()
+            .map(|t| {
+                Regex::new(&format!(
+                    r#"(?isx)<{t}\b[^>]*>(.*?)</{t}\s*>"#
+                ))
+                .expect("valid regex")
+            })
+            .collect()
+    });
+    &all[TAGS.iter().position(|x| *x == tag).unwrap()]
+}
+
+static TAG_RE: OnceLock<Regex> = OnceLock::new();
+
+/// Approximate word count of an HTML fragment (tags removed).
+fn word_count(html: &str) -> usize {
+    let re = TAG_RE.get_or_init(|| Regex::new(r#"(?s)<[^>]*>"#).expect("valid regex"));
+    re.replace_all(html, " ").split_whitespace().count()
+}
+
+/// Keep only the article body out of a full page (best effort), so the
+/// in-app reader shows the story instead of the whole site. Prefers the
+/// `<article>` block with the most text, then `<main>`, else the whole
+/// document. Blocks shorter than a threshold are ignored so stub pages
+/// (paywall teasers etc.) fall through to the broader container.
+const MIN_ARTICLE_WORDS: usize = 100;
+
+pub fn extract_main_content(html: &str) -> String {
+    for (tag, re) in [("article", tag_blocks_re("article")), ("main", tag_blocks_re("main"))] {
+        let best = re
+            .captures_iter(html)
+            .filter_map(|c| c.get(1))
+            .map(|m| m.as_str())
+            .filter(|b| word_count(b) >= MIN_ARTICLE_WORDS)
+            .max_by_key(|b| word_count(b));
+        if let Some(block) = best {
+            return format!("<{tag}>{block}</{tag}>");
+        }
+    }
+    html.to_string()
 }
 
 /// Pull the document title out of raw HTML (best effort).
@@ -163,6 +216,65 @@ mod tests {
         assert!(!out.contains("<meta"));
         assert!(!out.contains("position"));
         assert!(out.contains("<div>x</div>"));
+    }
+
+    #[test]
+    fn strips_site_chrome_tags() {
+        let input =
+            "<header><nav><a href=\"/\">Home</a></nav></header><p>body</p><aside>side</aside><footer>© 2026</footer>";
+        let out = sanitize_html(input);
+        assert!(!out.contains("<nav"));
+        assert!(!out.contains("Home"));
+        assert!(!out.contains("side"));
+        assert!(!out.contains("© 2026"));
+        assert!(out.contains("<p>body</p>"));
+    }
+
+    #[test]
+    fn extract_main_content_prefers_article() {
+        let body: String = vec!["word"; 150].join(" ");
+        let input = format!(
+            "<html><body>{}<main><article><h1>T</h1><p>{body}</p></article><aside>related</aside></main>{}<footer>© 2026</footer></body></html>",
+            "<header><nav><a>Menu</a></nav></header>",
+            "",
+        );
+        let out = extract_main_content(&input);
+        assert!(out.starts_with("<article>"));
+        assert!(out.contains(&body));
+        assert!(!out.contains("Menu"));
+        assert!(!out.contains("related"));
+        assert!(!out.contains("© 2026"));
+    }
+
+    #[test]
+    fn extract_main_content_falls_back_to_main() {
+        let body: String = vec!["text"; 120].join(" ");
+        let input = format!(
+            "<html><body><header>nav</header><main><p>{body}</p></main><footer>f</footer></body></html>"
+        );
+        let out = extract_main_content(&input);
+        assert!(out.starts_with("<main>"));
+        assert!(!out.contains("<footer>"));
+    }
+
+    #[test]
+    fn extract_main_content_ignores_short_article_and_keeps_document() {
+        // Short <article> stub (e.g. paywall teaser) must not win over the
+        // longer <main> content.
+        let body: String = vec!["text"; 120].join(" ");
+        let input = format!(
+            "<html><body><article><p>short teaser</p></article><main><p>{body}</p></main></body></html>"
+        );
+        let out = extract_main_content(&input);
+        assert!(out.starts_with("<main>"));
+    }
+
+    #[test]
+    fn extract_main_content_passthrough_without_containers() {
+        let body: String = vec!["plain"; 130].join(" ");
+        let input = format!("<html><body><p>{body}</p></body></html>");
+        let out = extract_main_content(&input);
+        assert_eq!(out, input);
     }
 
     #[test]
