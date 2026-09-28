@@ -40,7 +40,8 @@ you never leave the window.
 Prebuilt binaries for Windows and Linux live on the
 [releases page](https://github.com/fralsare/fralsare-daily/releases):
 
-- **Windows:** NSIS installer, MSI, or a portable zip (unzip and run)
+- **Windows:** NSIS installer, MSI, or a portable `.exe` (no install —
+  double-click to run)
 - **Linux:** AppImage, `.deb`, or `.rpm`
 
 ## Building from source
