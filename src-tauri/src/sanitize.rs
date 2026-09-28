@@ -22,6 +22,9 @@ const BLOCK_TAGS: &[&str] = &[
     "canvas",
     "template",
     "dialog",
+    // `<base>` hijacks relative URLs; `<meta http-equiv>` can redirect.
+    "base",
+    "meta",
 ];
 
 fn block_re(tag: &str) -> &'static Regex {
@@ -48,6 +51,17 @@ fn on_attr_re() -> &'static Regex {
     })
 }
 
+/// Inline style attributes can pin elements over the whole window
+/// (position:fixed lightboxes that can no longer be dismissed because the
+/// page scripts were stripped). Remove them wholesale.
+fn style_attr_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r#"(?i)\s+style\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)"#)
+            .expect("valid regex")
+    })
+}
+
 fn js_url_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
@@ -66,6 +80,7 @@ pub fn sanitize_html(html: &str) -> String {
         out = block_re(tag).replace_all(&out, "").into_owned();
     }
     out = on_attr_re().replace_all(&out, "").into_owned();
+    out = style_attr_re().replace_all(&out, "").into_owned();
     out = js_url_re().replace_all(&out, "").into_owned();
     out
 }
@@ -138,6 +153,16 @@ mod tests {
         let out = sanitize_html(input);
         assert!(out.contains("<a href=\"https://a.co/b\">link</a>"));
         assert!(out.contains("<img"));
+    }
+
+    #[test]
+    fn strips_inline_styles_base_and_meta() {
+        let input = r#"<head><base href="https://evil.example/"><meta http-equiv="refresh" content="0; url=https://evil.example/"></head><body><div style="position:fixed;left:0;top:0;width:100vw;height:100vh;background:white">x</div></body>"#;
+        let out = sanitize_html(input);
+        assert!(!out.contains("<base"));
+        assert!(!out.contains("<meta"));
+        assert!(!out.contains("position"));
+        assert!(out.contains("<div>x</div>"));
     }
 
     #[test]

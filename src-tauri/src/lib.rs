@@ -10,7 +10,7 @@ use chrono::{DateTime, Utc};
 use futures::future::join_all;
 use rss::{parse_feed, Article};
 use serde::Serialize;
-use tauri::{Manager, State};
+use tauri::State;
 
 /// How long a fetched topic stays fresh in the in-memory cache.
 const CACHE_TTL: Duration = Duration::from_secs(300);
@@ -22,6 +22,15 @@ const FEED_TIMEOUT: Duration = Duration::from_secs(15);
 const ARTICLE_TIMEOUT: Duration = Duration::from_secs(20);
 /// Cap on article bytes we are willing to parse.
 const MAX_ARTICLE_BYTES: usize = 4_000_000;
+
+/// True for common image magic bytes (used when a server omits the
+/// content type).
+fn has_image_magic(b: &[u8]) -> bool {
+    b.starts_with(&[0xFF, 0xD8, 0xFF]) // JPEG
+        || b.starts_with(&[0x89, b'P', b'N', b'G']) // PNG
+        || b.len() > 3 && b.starts_with(b"GIF8") // GIF
+        || b.len() > 11 && &b[8..12] == b"WEBP" // WEBP
+}
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -183,8 +192,26 @@ async fn fetch_article(
     }
 
     let bytes = resp.bytes().await.map_err(|e| format!("fetch failed: {e}"))?;
-    let text = String::from_utf8_lossy(&bytes[..bytes.len().min(MAX_ARTICLE_BYTES)]);
     let ctype = content_type.to_ascii_lowercase();
+
+    // Image URLs (some feeds link straight to photos) render inline in the
+    // reader instead of dead-ending in the webview.
+    if ctype.starts_with("image/")
+        || (ctype.is_empty() && has_image_magic(&bytes))
+    {
+        let html = format!(
+            "<img class=\"reader-image\" src=\"{}\" alt=\"\">",
+            sanitize::escape_html(&url)
+        );
+        return Ok(ArticleContent {
+            url: url.to_string(),
+            title: String::new(),
+            html,
+            content_type,
+        });
+    }
+
+    let text = String::from_utf8_lossy(&bytes[..bytes.len().min(MAX_ARTICLE_BYTES)]);
 
     if ctype.contains("html") || ctype.is_empty() {
         let title = sanitize::extract_title(&text);
@@ -246,9 +273,31 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![fetch_topic, fetch_article])
         .setup(|app| {
-            let _window = app
-                .get_webview_window("main")
-                .expect("main window not found");
+            // The window is built in code (instead of tauri.conf.json) so a
+            // navigation guard can be installed: the webview must stay
+            // inside the app. Denying navigations that leave the app origin
+            // (meta refresh, stray redirects, bare image URLs) is what
+            // prevents getting "trapped" in a fullscreen image with no way
+            // back.
+            tauri::WebviewWindowBuilder::new(
+                app,
+                "main",
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .title("fralsare-daily")
+            .inner_size(1100.0, 760.0)
+            .min_inner_size(720.0, 480.0)
+            .center()
+            .on_navigation(|url: &url::Url| {
+                url.scheme() == "tauri"
+                    || url.scheme() == "about"
+                    || (cfg!(dev)
+                        && (url.host_str() == Some("localhost")
+                            || url.host_str() == Some("127.0.0.1")))
+                    || (url.scheme() == "http"
+                        && url.host_str() == Some("tauri.localhost"))
+            })
+            .build()?;
             Ok(())
         })
         .run(tauri::generate_context!())

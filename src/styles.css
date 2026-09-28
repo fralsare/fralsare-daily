@@ -423,6 +423,14 @@ body {
   border-radius: 8px;
 }
 
+.reader-image {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  margin: 16px auto;
+  border-radius: 8px;
+}
+
 .reader a {
   color: var(--accent);
 }

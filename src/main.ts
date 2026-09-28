@@ -233,6 +233,9 @@ const BLOCKED_TAGS = new Set([
   "CANVAS",
   "TEMPLATE",
   "DIALOG",
+  // <base> hijacks relative URLs; <meta http-equiv> can redirect the page.
+  "BASE",
+  "META",
 ]);
 
 /**
@@ -258,6 +261,9 @@ function sanitizeDocument(html: string): HTMLElement {
         ) {
           child.removeAttribute(attr.name);
         }
+        // Inline styles can pin elements over the whole window (position:
+        // fixed lightboxes with no scripts left to dismiss them).
+        if (name === "style") child.removeAttribute(attr.name);
       }
       walk(child);
     }
@@ -464,6 +470,20 @@ state.ticking = setInterval(() => {
     if (meta) updateMeta(meta);
   }
 }, 30_000);
+
+// Escape always walks out of the in-app reader, no matter where focus is.
+window.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && state.articleStack.length > 0) {
+    backFromArticle();
+  }
+});
+
+// Best effort against WebKit's native image viewer (double-click on an
+// image), which otherwise takes over the whole window.
+window.addEventListener("dblclick", (ev) => {
+  const target = ev.target as HTMLElement | null;
+  if (target && target.tagName === "IMG") ev.preventDefault();
+});
 
 render();
 loadTopic();
