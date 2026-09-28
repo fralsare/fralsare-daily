@@ -167,16 +167,31 @@ body {
 }
 
 .interval-select {
-  background: transparent;
+  /* WebKit renders <select> as a native white widget by default, which
+     clashes with the dark sidebar; force a fully custom dark look so the
+     selected value is always readable. */
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-sidebar-active);
+  background-image: linear-gradient(45deg, transparent 50%, #9aa7b4 50%),
+    linear-gradient(135deg, #9aa7b4 50%, transparent 50%);
+  background-position: calc(100% - 13px) 55%, calc(100% - 9px) 55%;
+  background-size: 4px 4px;
+  background-repeat: no-repeat;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 7px;
-  color: #d7dee6;
+  color: #e7edf3;
   font-size: 12px;
-  padding: 4px 6px;
+  padding: 4px 24px 4px 8px;
+}
+
+.interval-select:hover {
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .interval-select option {
-  color: #17202b;
+  background-color: var(--bg-sidebar);
+  color: #e7edf3;
 }
 
 /* ------------------------------------------------------------------ main */
