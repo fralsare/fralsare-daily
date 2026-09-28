@@ -35,6 +35,14 @@ you never leave the window.
 - **In-app navigation** — links inside an article also open in the reader
 - **No accounts, no keys** — everything runs on public RSS feeds
 
+## Downloads
+
+Prebuilt binaries for Windows and Linux live on the
+[releases page](https://github.com/fralsare/fralsare-daily/releases):
+
+- **Windows:** NSIS installer, MSI, or a portable zip (unzip and run)
+- **Linux:** AppImage, `.deb`, or `.rpm`
+
 ## Building from source
 
 ### Prerequisites
@@ -42,8 +50,8 @@ you never leave the window.
 - [Rust](https://rustup.rs) (stable)
 - [Node.js](https://nodejs.org) 20+
 - Platform dependencies:
-  - **Linux**: `libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev
-    libayatana-appindicator3-dev librsvg2-dev`
+  - **Linux**: `libwebkit2gtk-4.1-dev libxdo-dev build-essential libssl-dev
+    libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev`
   - **Windows**: Microsoft C++ Build Tools and WebView2 (preinstalled on
     Windows 10/11)
 

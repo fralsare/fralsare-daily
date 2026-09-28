@@ -1,7 +1,7 @@
 {
   "name": "fralsare-daily",
   "productName": "fralsare-daily",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "A minimal cross-platform desktop news reader organized by topics. Open source, no API keys, no accounts.",
   "type": "module",
   "private": true,
