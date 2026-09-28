@@ -54,7 +54,7 @@ jobs:
             - **Linux:** the `_amd64.AppImage` (most distros), or the
               `.deb` / `.rpm` packages
 
-            Built automatically by CI from tag `__TAG__`. MIT-licensed.
+            Built automatically by CI from the release tag. MIT-licensed.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}

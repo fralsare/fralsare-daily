@@ -17,7 +17,14 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+    "nsis",
+    "msi",
+    "zip",
+    "appimage",
+    "deb",
+    "rpm"
+    ],
     "category": "News",
     "shortDescription": "A minimal cross-platform desktop news reader organized by topics",
     "icon": [
