@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.png" alt="fralsare-daily logo" width="160" height="160">
+</p>
+
 # fralsare-daily
 
 A fast, lightweight desktop news reader for Windows and Linux.
