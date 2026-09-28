@@ -5,3 +5,6 @@ src-tauri/gen/schemas/
 .DS_Store
 *.log
 .vite/
+
+# personal notes — never commit
+ignore/
