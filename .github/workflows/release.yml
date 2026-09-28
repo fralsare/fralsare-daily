@@ -45,9 +45,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__
+          tagName: __TAG__
           releaseName: "fralsare-daily v__VERSION__"
-          releaseBody: "See the assets below. Released automatically from tag."
+          releaseBody: |
+            Quick start:
+            - **Windows:** the `_x64-setup.exe` installer, or the
+              `_x64.zip` (portable, no install)
+            - **Linux:** the `_amd64.AppImage` (most distros), or the
+              `.deb` / `.rpm` packages
+
+            Built automatically by CI from tag `__TAG__`. MIT-licensed.
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
