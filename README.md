@@ -11,6 +11,8 @@ topics, so you get a clean, organized daily briefing without accounts, API
 keys, or tracking. Clicking a story opens it in a built-in in-app reader —
 you never leave the window.
 
+![screenshot](docs/fralsare_daily.png)
+
 ## Topics
 
 | Topic | What you'll get |
