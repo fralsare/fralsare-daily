@@ -106,9 +106,9 @@ Edit `src-tauri/src/feeds.rs` — each topic maps to a list of
 
 ## 🙏 Support This Project
 
-Developing, maintaining, and improving this app takes time. If you find
-it useful, consider supporting the work — the funds go toward
-**cybersecurity studies**.
+Developing, maintaining, and improving open-source tools takes time. If
+you find it useful, consider supporting the work — the funds go towards my
+**CyberSecurity studies**.
 
 Support via **Razorpay** using either link:
 
