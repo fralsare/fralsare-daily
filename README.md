@@ -115,7 +115,7 @@ Support via **Razorpay** using either link:
 - [razorpay.me/@fralsare](https://razorpay.me/@fralsare) — Quick payment link
 - [rzp.io/rzp/TdksERz](https://rzp.io/rzp/TdksERz) — Payment page link
 
-Thanks to all my backers for making this possible!
+Thanks for supporting independent development!
 
 ## License
 
