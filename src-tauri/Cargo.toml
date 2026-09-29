@@ -1,6 +1,6 @@
 [package]
 name = "fralsare-daily"
-version = "1.0.0"
+version = "1.0.1"
 description = "A minimal cross-platform desktop news reader organized by topics"
 authors = ["fralsare"]
 edition = "2021"
