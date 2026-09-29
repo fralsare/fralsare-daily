@@ -82,19 +82,17 @@ pub fn parse_feed(xml: &str, source: &str) -> Vec<Article> {
                 }
                 // Nested markup inside a non-CDATA content:encoded arrives
                 // as real start/end events; fold it back into the raw text.
-                if name != "content:encoded" && name != "content"
+                if name != "content:encoded"
+                    && name != "content"
                     && matches!(capturing, Some(Capture::Content))
                     && item.is_some()
                     && !KNOWN_TAGS.contains(&name.as_str())
                 {
                     let mut tag = format!("<{name}");
-                    for result in e.attributes() {
-                        if let Ok(a) = result {
-                            let key =
-                                std::str::from_utf8(a.key.as_ref()).unwrap_or("?");
-                            if let Ok(value) = a.unescape_value() {
-                                tag.push_str(&format!(" {key}=\"{value}\""));
-                            }
+                    for a in e.attributes().flatten() {
+                        let key = std::str::from_utf8(a.key.as_ref()).unwrap_or("?");
+                        if let Ok(value) = a.unescape_value() {
+                            tag.push_str(&format!(" {key}=\"{value}\""));
                         }
                     }
                     text.push_str(&tag);
@@ -162,7 +160,7 @@ pub fn parse_feed(xml: &str, source: &str) -> Vec<Article> {
             Ok(Event::Text(ref e)) => push_unescaped(e.unescape(), &mut text),
             Ok(Event::CData(ref e)) => {
                 // CData content is raw text (no entity escaping).
-                if let Some(raw) = std::str::from_utf8(e.as_ref()).ok() {
+                if let Ok(raw) = std::str::from_utf8(e.as_ref()) {
                     if capturing.is_some() {
                         text.push_str(raw);
                     }
@@ -350,10 +348,7 @@ fn strip_html(input: &str) -> String {
         .replace("&hellip;", "…")
         .replace("&nbsp;", " ")
         .replace('\u{a0}', " ");
-    let out: String = out
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
+    let out: String = out.split_whitespace().collect::<Vec<_>>().join(" ");
     if out.len() > 300 {
         let mut end = 300;
         while end > 0 && !out.is_char_boundary(end) {
@@ -368,12 +363,24 @@ fn strip_html(input: &str) -> String {
     }
 }
 
+fn parse_date(s: &str) -> Option<DateTime<Utc>> {
+    let s = s.trim();
+
+    if let Ok(d) = DateTime::parse_from_rfc3339(s) {
+        return Some(d.with_timezone(&Utc));
+    }
+    if let Ok(d) = DateTime::parse_from_rfc2822(s) {
+        return Some(d.with_timezone(&Utc));
+    }
+    let naive = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").ok()?;
+    let ts = naive.and_utc().timestamp();
+    DateTime::from_timestamp(ts, 0).map(|d| d.with_timezone(&Utc))
+}
+
 #[cfg(test)]
 mod tests {
 
-
     use super::*;
-
 
     const RSS: &str = r#"<?xml version="1.0"?>
 <rss version="2.0">
@@ -424,10 +431,18 @@ mod tests {
         assert!(first.pub_date.is_some());
         // media:content wins over the <img> in the body
         assert_eq!(first.image.as_deref(), Some("https://example.com/m.webp"));
-        assert!(first.summary.as_deref().unwrap().contains("Body text & more."));
+        assert!(first
+            .summary
+            .as_deref()
+            .unwrap()
+            .contains("Body text & more."));
 
         // description with entity-escaped HTML becomes plain text
-        assert!(items[1].summary.as_deref().unwrap().contains("Escaped description"));
+        assert!(items[1]
+            .summary
+            .as_deref()
+            .unwrap()
+            .contains("Escaped description"));
 
         // content:encoded fallback finds the <img>
         assert_eq!(items[2].image.as_deref(), Some("https://example.com/b.png"));
@@ -483,19 +498,4 @@ mod tests {
         assert!(parse_feed("this is not xml at all", "X").is_empty());
         assert!(parse_feed("", "X").is_empty());
     }
-}
-
-fn parse_date(s: &str) -> Option<DateTime<Utc>> {
-    let s = s.trim();
-
-    if let Ok(d) = DateTime::parse_from_rfc3339(s) {
-        return Some(d.with_timezone(&Utc));
-    }
-    if let Ok(d) = DateTime::parse_from_rfc2822(s) {
-        return Some(d.with_timezone(&Utc));
-    }
-    let naive = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
-        .ok()?;
-    let ts = naive.and_utc().timestamp();
-    DateTime::from_timestamp(ts, 0).map(|d| d.with_timezone(&Utc))
 }

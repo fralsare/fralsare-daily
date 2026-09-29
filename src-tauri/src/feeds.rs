@@ -97,5 +97,8 @@ pub const TOPICS: &[(&str, &[FeedSpec])] = &[
 ];
 
 pub fn feeds_for(topic: &str) -> Option<&'static [FeedSpec]> {
-    TOPICS.iter().find(|(id, _)| *id == topic).map(|(_, feeds)| *feeds)
+    TOPICS
+        .iter()
+        .find(|(id, _)| *id == topic)
+        .map(|(_, feeds)| *feeds)
 }

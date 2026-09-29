@@ -28,7 +28,7 @@ you never leave the window.
 - **Standalone native window** — built with [Tauri 2](https://tauri.app),
   ~10–20 MB installer, no bundled Chromium
 - **Images or text-only** — toggle the display mode; preference is remembered
-- **Automatic refresh** — optional 5/15/30/60-minute intervals
+- **Automatic refresh** — optional 1/5/15/30-minute intervals
 - **Fast parallel loading** — 15 feeds fetched concurrently in Rust
 - **In-app article reader** — stories open inside the window with a back
   button; an “Open in browser” button is always available as a fallback
@@ -110,14 +110,10 @@ Developing, maintaining, and improving this app takes time. If you find
 it useful, consider supporting the work — the funds go toward
 **cybersecurity studies**.
 
-Choose the payment method that's most convenient for you:
+Support via **Razorpay** using either link:
 
-[![Sponsor](https://img.shields.io/badge/sponsor%20-30363d?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/fralsare)
-
-If you're in India, you can also pay directly via **Google Pay / any UPI
-app** by scanning the QR code below — no account sign-up required.
-
-![UPI Payment](./DonationUPI.jpeg)
+- [razorpay.me/@fralsare](https://razorpay.me/@fralsare) — Quick payment link
+- [rzp.io/rzp/TdksERz](https://rzp.io/rzp/TdksERz) — Payment page link
 
 Thanks to all my backers for making this possible!
 

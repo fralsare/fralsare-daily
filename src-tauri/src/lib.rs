@@ -2,7 +2,8 @@ mod feeds;
 mod rss;
 mod sanitize;
 
-use std::collections::HashMap;
+use std::cmp::Reverse;
+use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -29,7 +30,9 @@ fn has_image_magic(b: &[u8]) -> bool {
     b.starts_with(&[0xFF, 0xD8, 0xFF]) // JPEG
         || b.starts_with(&[0x89, b'P', b'N', b'G']) // PNG
         || b.len() > 3 && b.starts_with(b"GIF8") // GIF
-        || b.len() > 11 && &b[8..12] == b"WEBP" // WEBP
+        || (b.len() > 11
+            && &b[0..4] == b"RIFF"
+            && &b[8..12] == b"WEBP") // WEBP
 }
 
 #[derive(Serialize, Clone)]
@@ -85,7 +88,10 @@ async fn fetch_one_feed(
         return Err(format!("{}: HTTP {}", feed.name, resp.status()));
     }
 
-    let bytes = resp.bytes().await.map_err(|e| format!("{}: {e}", feed.name))?;
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("{}: {e}", feed.name))?;
     let xml = String::from_utf8_lossy(&bytes);
     let articles = parse_feed(&xml, feed.name);
 
@@ -101,8 +107,7 @@ async fn fetch_one_feed(
 
 #[tauri::command]
 async fn fetch_topic(state: State<'_, AppState>, topic: String) -> Result<TopicResult, String> {
-    let feeds = feeds::feeds_for(&topic)
-        .ok_or_else(|| format!("unknown topic: {topic}"))?;
+    let feeds = feeds::feeds_for(&topic).ok_or_else(|| format!("unknown topic: {topic}"))?;
 
     // Serve from cache when fresh.
     {
@@ -129,9 +134,12 @@ async fn fetch_topic(state: State<'_, AppState>, topic: String) -> Result<TopicR
         }
     }
 
-    // Newest first; undated stories sink to the bottom. De-dupe by id.
-    articles.sort_by(|a, b| b.pub_date.cmp(&a.pub_date));
-    articles.dedup_by(|a, b| a.id == b.id);
+    // Newest first; undated stories sink to the bottom. De-dupe by id
+    // across the whole set (not just adjacent entries, since equal ids
+    // with different dates would not sort together).
+    articles.sort_by_key(|a| Reverse(a.pub_date));
+    let mut seen = HashSet::new();
+    articles.retain(|a| seen.insert(a.id.clone()));
     articles.truncate(MAX_ARTICLES);
 
     let result = TopicResult {
@@ -147,8 +155,7 @@ async fn fetch_topic(state: State<'_, AppState>, topic: String) -> Result<TopicR
 }
 
 fn validate_public_url(raw: &str) -> Result<String, String> {
-    let url = reqwest::Url::parse(raw)
-        .map_err(|e| format!("invalid URL: {e}"))?;
+    let url = reqwest::Url::parse(raw).map_err(|e| format!("invalid URL: {e}"))?;
     let scheme = url.scheme();
     if scheme != "http" && scheme != "https" {
         return Err(format!("unsupported URL scheme: {scheme}"));
@@ -157,10 +164,7 @@ fn validate_public_url(raw: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn fetch_article(
-    state: State<'_, AppState>,
-    url: String,
-) -> Result<ArticleContent, String> {
+async fn fetch_article(state: State<'_, AppState>, url: String) -> Result<ArticleContent, String> {
     let url = validate_public_url(&url)?;
 
     let resp = state
@@ -191,14 +195,15 @@ async fn fetch_article(
         return Err(format!("fetch failed: HTTP {status}"));
     }
 
-    let bytes = resp.bytes().await.map_err(|e| format!("fetch failed: {e}"))?;
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("fetch failed: {e}"))?;
     let ctype = content_type.to_ascii_lowercase();
 
     // Image URLs (some feeds link straight to photos) render inline in the
     // reader instead of dead-ending in the webview.
-    if ctype.starts_with("image/")
-        || (ctype.is_empty() && has_image_magic(&bytes))
-    {
+    if ctype.starts_with("image/") || (ctype.is_empty() && has_image_magic(&bytes)) {
         let html = format!(
             "<img class=\"reader-image\" src=\"{}\" alt=\"\">",
             sanitize::escape_html(&url)
@@ -296,8 +301,7 @@ pub fn run() {
                     || (cfg!(dev)
                         && (url.host_str() == Some("localhost")
                             || url.host_str() == Some("127.0.0.1")))
-                    || (url.scheme() == "http"
-                        && url.host_str() == Some("tauri.localhost"))
+                    || (url.scheme() == "http" && url.host_str() == Some("tauri.localhost"))
             })
             .build()?;
             Ok(())

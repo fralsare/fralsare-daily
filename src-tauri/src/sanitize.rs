@@ -10,27 +10,13 @@ use std::sync::OnceLock;
 
 /// Tags removed together with their entire contents.
 const BLOCK_TAGS: &[&str] = &[
-    "script",
-    "style",
-    "noscript",
-    "iframe",
-    "frame",
-    "object",
-    "embed",
-    "form",
-    "svg",
-    "canvas",
-    "template",
-    "dialog",
+    "script", "style", "noscript", "iframe", "frame", "object", "embed", "form", "svg", "canvas",
+    "template", "dialog",
     // `<base>` hijacks relative URLs; `<meta http-equiv>` can redirect.
-    "base",
-    "meta",
+    "base", "meta",
     // Site chrome: headers, nav menus, footers, and sidebars are noise in
     // the reader (menus, related-stories lists, legal text).
-    "nav",
-    "header",
-    "footer",
-    "aside",
+    "nav", "header", "footer", "aside",
 ];
 
 fn block_re(tag: &str) -> &'static Regex {
@@ -39,10 +25,8 @@ fn block_re(tag: &str) -> &'static Regex {
         BLOCK_TAGS
             .iter()
             .map(|t| {
-                Regex::new(&format!(
-                    r#"(?isx)<{t}\b[^>]*>.*?</{t}\s*>|<{t}\b[^>]*/?>"#
-                ))
-                .expect("valid regex")
+                Regex::new(&format!(r#"(?isx)<{t}\b[^>]*>.*?</{t}\s*>|<{t}\b[^>]*/?>"#))
+                    .expect("valid regex")
             })
             .collect()
     });
@@ -52,8 +36,7 @@ fn block_re(tag: &str) -> &'static Regex {
 fn on_attr_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r#"(?i)\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)"#)
-            .expect("valid regex")
+        Regex::new(r#"(?i)\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)"#).expect("valid regex")
     })
 }
 
@@ -63,17 +46,14 @@ fn on_attr_re() -> &'static Regex {
 fn style_attr_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(r#"(?i)\s+style\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)"#)
-            .expect("valid regex")
+        Regex::new(r#"(?i)\s+style\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)"#).expect("valid regex")
     })
 }
 
 fn js_url_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
     RE.get_or_init(|| {
-        Regex::new(
-            r#"(?i)(?:href|src)\s*=\s*(?:"[^"]*javascript:[^"]*"|'[^']*javascript:[^']*')"#,
-        )
+        Regex::new(r#"(?i)(?:href|src)\s*=\s*(?:"[^"]*javascript:[^"]*"|'[^']*javascript:[^']*')"#)
             .expect("valid regex")
     })
 }
@@ -95,13 +75,9 @@ fn tag_blocks_re(tag: &str) -> &'static Regex {
     static RE: OnceLock<Vec<Regex>> = OnceLock::new();
     const TAGS: &[&str] = &["article", "main"];
     let all = RE.get_or_init(|| {
-        TAGS
-            .iter()
+        TAGS.iter()
             .map(|t| {
-                Regex::new(&format!(
-                    r#"(?isx)<{t}\b[^>]*>(.*?)</{t}\s*>"#
-                ))
-                .expect("valid regex")
+                Regex::new(&format!(r#"(?isx)<{t}\b[^>]*>(.*?)</{t}\s*>"#)).expect("valid regex")
             })
             .collect()
     });
@@ -124,7 +100,10 @@ fn word_count(html: &str) -> usize {
 const MIN_ARTICLE_WORDS: usize = 100;
 
 pub fn extract_main_content(html: &str) -> String {
-    for (tag, re) in [("article", tag_blocks_re("article")), ("main", tag_blocks_re("main"))] {
+    for (tag, re) in [
+        ("article", tag_blocks_re("article")),
+        ("main", tag_blocks_re("main")),
+    ] {
         let best = re
             .captures_iter(html)
             .filter_map(|c| c.get(1))
@@ -141,9 +120,8 @@ pub fn extract_main_content(html: &str) -> String {
 /// Pull the document title out of raw HTML (best effort).
 pub fn extract_title(html: &str) -> String {
     static RE: OnceLock<Regex> = OnceLock::new();
-    let re = RE.get_or_init(|| {
-        Regex::new(r#"(?is)<title[^>]*>(.*?)</title\s*>"#).expect("valid regex")
-    });
+    let re =
+        RE.get_or_init(|| Regex::new(r#"(?is)<title[^>]*>(.*?)</title\s*>"#).expect("valid regex"));
     if let Some(m) = re.captures(html) {
         let text = m
             .get(1)
