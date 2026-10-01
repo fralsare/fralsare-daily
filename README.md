@@ -104,18 +104,17 @@ fallback.
 Edit `src-tauri/src/feeds.rs` — each topic maps to a list of
 `(name, url)` feed pairs. RSS 2.0 and Atom are both supported.
 
-## 🙏 Support This Project
+## Support open-source tool development
 
-Developing, maintaining, and improving open-source tools takes time. If
-you find it useful, consider supporting the work — the funds go towards my
-**CyberSecurity studies**.
+Your donation keeps this project maintained and funds new open-source
+projects, while supporting my **CyberSecurity studies**. Even a small amount
+makes a real difference. Thank you for supporting independent open-source
+work!
 
-Support via **Razorpay** using either link:
+Support via **PayPal** or **Razorpay**:
 
-- [razorpay.me/@fralsare](https://razorpay.me/@fralsare) — Quick payment link
-- [rzp.io/rzp/TdksERz](https://rzp.io/rzp/TdksERz) — Payment page link
-
-Thanks for supporting independent development!
+- [PayPal](https://www.paypal.com/ncp/payment/KKFBWQP97XUCN) — PayPal payment
+- [Razorpay](https://rzp.io/rzp/TdksERz) — Razorpay payment
 
 ## License
 
