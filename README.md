@@ -104,17 +104,14 @@ fallback.
 Edit `src-tauri/src/feeds.rs` — each topic maps to a list of
 `(name, url)` feed pairs. RSS 2.0 and Atom are both supported.
 
-## Support open-source tool development
+<h2 align="center" style="color:#2ea043">🙏 Support open-source tool development</h2>
 
-Your donation keeps this project maintained and funds new open-source
-projects, while supporting my **CyberSecurity studies**. Even a small amount
-makes a real difference. Thank you for supporting independent open-source
-work!
+<p style="color:#2ea043"><b>Your donation keeps this project maintained and funds new open-source projects, while supporting my CyberSecurity studies.</b> Even a small amount makes a real difference. Thank you for supporting independent open-source work!</p>
 
-Support via **PayPal** or **Razorpay**:
-
-- [PayPal](https://www.paypal.com/ncp/payment/KKFBWQP97XUCN) — PayPal payment
-- [Razorpay](https://rzp.io/rzp/TdksERz) — Razorpay payment
+| Method | Link |
+|---|---|
+| PayPal | <b><a href="https://www.paypal.com/ncp/payment/KKFBWQP97XUCN">paypal.com/ncp/payment/KKFBWQP97XUCN</a></b> |
+| Razorpay | <b><a href="https://rzp.io/rzp/TdksERz">rzp.io/rzp/TdksERz</a></b> |
 
 ## License
 
